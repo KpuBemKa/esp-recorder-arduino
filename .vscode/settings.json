@@ -1,4 +1,28 @@
 {
     "editor.detectIndentation": false,
-    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Mozilla, ColumnLimit: 100, IndentWidth: 4}"
+    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: Mozilla, ColumnLimit: 100, IndentWidth: 2}",
+    "files.associations": {
+        "type_traits": "cpp",
+        "array": "cpp",
+        "atomic": "cpp",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "algorithm": "cpp",
+        "functional": "cpp",
+        "memory": "cpp",
+        "memory_resource": "cpp",
+        "optional": "cpp",
+        "random": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "cmath": "cpp",
+        "numeric": "cpp",
+        "span": "cpp",
+        "sstream": "cpp",
+        "streambuf": "cpp",
+        "utility": "cpp"
+    }
 }

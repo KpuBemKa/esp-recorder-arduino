@@ -30,9 +30,12 @@ constexpr int SPI_PIN_MISO = 2;
 constexpr int SD_PIN_CS = 12;
 
 // Screen pins
-constexpr int SCREEN_PIN_RESET = 10;
-constexpr int SCREEN_PIN_DC = 11;
-constexpr int SCREEN_PIN_CS = 18;
+
+constexpr int SCREEN_PIN_CS = 15;
+constexpr int SCREEN_PIN_DC = 23;
+constexpr int SCREEN_PIN_RST = 22;
+constexpr int SCREEN_PIN_BUSY = 21;
+constexpr int SCREEN_PIN_PWR = 20;
 
 constexpr std::string_view VFS_MOUNT_POINT = "/storage";
 

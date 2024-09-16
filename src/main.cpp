@@ -7,6 +7,7 @@
 #include "sd_card.hpp"
 #include "settings.hpp"
 #include "wav_writer.hpp"
+#include "screen_driver.hpp"
 
 constexpr i2s_std_config_t I2S_MIC_CONFIG = { 
   .clk_cfg = {
@@ -61,6 +62,9 @@ setup()
 
     pinMode(BUTTON_PIN, INPUT_PULLUP); // set the pullup
     digitalWrite(BUTTON_PIN, HIGH); // activate the pullup
+
+    ScreenDriver<GxEPD2_290_T94> screen_driver;
+    screen_driver.Init();
 
     Serial.printf("Ready.\n");
 }
