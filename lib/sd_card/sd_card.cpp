@@ -13,53 +13,59 @@
 
 #include "settings.hpp"
 
+#if DEBUG_SD
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...)
+#endif
+
 namespace sd {
 
 bool
 SDCard::Init()
 {
-    Serial.printf("Initializing SD card...\n");
+    LOG("Initializing SD card...\n");
 
     if (m_is_init) {
-        Serial.printf("SD card is already initialized.\n");
+        LOG("SD card is already initialized.\n");
         return ESP_OK;
     }
 
     const bool b_result = SD.begin(SD_PIN_CS, SPI, 4'000'000UL, VFS_MOUNT_POINT.data(), 5, false);
     // const bool b_result = SD.begin(SD_PIN_CS);
     if (!b_result) {
-        Serial.printf("Failed to mount the SD card.\n");
+        LOG("Failed to mount the SD card.\n");
         return false;
     }
 
     const sdcard_type_t card_type = SD.cardType();
     if (card_type == sdcard_type_t::CARD_NONE) {
-        Serial.printf("No SD card detected.\n");
+        LOG("No SD card detected.\n");
         return false;
     }
 
 #if DEBUG_SD
-    Serial.printf("SD card type: ");
+    LOG("SD card type: ");
     switch (card_type) {
         case sdcard_type_t::CARD_SD:
-            Serial.printf("SDSC\n");
+            LOG("SDSC\n");
             break;
 
         case sdcard_type_t::CARD_SDHC:
-            Serial.printf("SDHC\n");
+            LOG("SDHC\n");
             break;
 
         case sdcard_type_t::CARD_MMC:
-            Serial.printf("SDMMC\n");
+            LOG("SDMMC\n");
             break;
 
         case sdcard_type_t::CARD_UNKNOWN:
-            Serial.printf("UNKNOWN\n");
+            LOG("UNKNOWN\n");
             break;
     }
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+    LOG("SD Card Size: %lluMB\n", cardSize);
 #endif
 
     m_is_init = true;
@@ -70,10 +76,10 @@ SDCard::Init()
 void
 SDCard::DeInit()
 {
-    Serial.printf("De-initializing the SD card...\n");
+    LOG("De-initializing the SD card...\n");
 
     if (!m_is_init) {
-        Serial.printf("SD card is not initialized. Skipping the de-initialization...\n");
+        LOG("SD card is not initialized. Skipping the de-initialization...\n");
     }
 
     SD.end();

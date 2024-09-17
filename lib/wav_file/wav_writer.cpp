@@ -7,11 +7,16 @@
 
 #include "settings.hpp"
 
+#if DEBUG_WAV
+#define LOG(...) Serial.printf(__VA_ARGS__)
+#else
+#define LOG(...)
+#endif
+
 bool
-WavWriter::Open(
-  const std::string_view file_path /* , const std::size_t sample_rate */)
+WavWriter::Open(const std::string_view file_path /* , const std::size_t sample_rate */)
 {
-  Serial.printf("Opening file '%.*s'...\n", file_path.size(), file_path.data());
+  LOG("Opening file '%.*s'...\n", file_path.size(), file_path.data());
 
   m_fp = fopen(file_path.data(), "wb");
 
@@ -24,10 +29,9 @@ WavWriter::Open(
 
   // m_header.sample_rate = sample_rate;
   // write out the header - we'll fill in some of the blanks later
-  const std::size_t written =
-    std::fwrite(&m_header, sizeof(wav_header_t), 1, m_fp);
+  const std::size_t written = std::fwrite(&m_header, sizeof(wav_header_t), 1, m_fp);
   if (written != 1) {
-    Serial.printf("%s:%d | Error writing the WAV header:\n", __FILE__, __LINE__);
+    LOG("%s:%d | Error writing the WAV header:\n", __FILE__, __LINE__);
     perror("");
     return false;
   }
@@ -56,14 +60,13 @@ void
 WavWriter::WriteSamples(const std::span<int16_t> samples)
 {
   // write the samples and keep track of the file size so far
-  const std::size_t written =
-    fwrite(samples.data(), sizeof(samples[0]), samples.size(), m_fp);
+  const std::size_t written = fwrite(samples.data(), sizeof(samples[0]), samples.size(), m_fp);
   if (written != samples.size()) {
-    Serial.printf("%s:%d | Error writing samples. Samples to write: %u | written: %u\n",
-          __FILE__,
-          __LINE__,
-          samples.size(),
-          written);
+    LOG("%s:%d | Error writing samples. Samples to write: %u | written: %u\n",
+                  __FILE__,
+                  __LINE__,
+                  samples.size(),
+                  written);
     perror("");
   }
 
@@ -73,7 +76,7 @@ WavWriter::WriteSamples(const std::span<int16_t> samples)
 bool
 WavWriter::FinishAndClose()
 {
-  Serial.printf("Finished wav file size: %d\n", m_file_size);
+  LOG("Finished wav file size: %d\n", m_file_size);
 
   // now fill in the header with the correct information and write it again
   m_header.data_bytes = m_file_size - sizeof(wav_header_t);
@@ -83,11 +86,11 @@ WavWriter::FinishAndClose()
   fwrite(&m_header, sizeof(m_header), 1, m_fp);
 
   if (fclose(m_fp) != 0) {
-    Serial.printf("%s:%d | Unable to close the file. errno: %d = %s",
-          __FILE__,
-          __LINE__,
-          errno,
-          std::strerror(errno));
+    LOG("%s:%d | Unable to close the file. errno: %d = %s",
+                  __FILE__,
+                  __LINE__,
+                  errno,
+                  std::strerror(errno));
     return false;
   }
 

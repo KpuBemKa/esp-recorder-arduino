@@ -8,8 +8,8 @@
 class I2sSampler
 {
 public:
-  esp_err_t Init(const i2s_std_config_t& i2s_config);
-  esp_err_t DeInit();
+  bool Init();
+  bool DeInit();
 
   ~I2sSampler();
 
