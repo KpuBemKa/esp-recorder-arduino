@@ -41,6 +41,15 @@ constexpr std::string_view VFS_MOUNT_POINT = "/storage";
 
 constexpr std::string_view DEVICE_NAME = "esp-recorder";
 
+constexpr std::string_view WIFI_SSID = "Penzari";
+constexpr std::string_view WIFI_PASS = "068882210";
+
+// constexpr std::string_view CONFIG_FTP_SERVER = "192.168.50.111";
+constexpr std::string_view CONFIG_FTP_SERVER = "192.168.0.136";
+constexpr uint16_t CONFIG_FTP_PORT = 21;
+constexpr std::string_view CONFIG_FTP_USER = "esp-recordings";
+constexpr std::string_view CONFIG_FTP_PASSWORD = "Admin0308";
+
 #define DEBUG_SD 1
 #define DEBUG_MIC 1
 #define DEBUG_WAV 1

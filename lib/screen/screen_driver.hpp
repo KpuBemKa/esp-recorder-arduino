@@ -33,6 +33,9 @@ public:
   void DisplayStandby();
   void DisplayAfterRecording();
 
+  void EnablePower();
+  void DisablePower();
+
 private:
   bool m_is_init = false;
 
@@ -44,10 +47,9 @@ bool
 ScreenDriver<Driver>::Init()
 {
   pinMode(SCREEN_PIN_PWR, OUTPUT);
+  // delay(100);
 
-  delay(100);
-
-  digitalWrite(SCREEN_PIN_PWR, HIGH);
+  EnablePower();
 
   // Init SPI. If initialized, will immediately return
   SPI.begin(SPI_PIN_CLK, SPI_PIN_MISO, SPI_PIN_MOSI, (-1));
@@ -62,6 +64,8 @@ ScreenDriver<Driver>::Init()
   // Initialize, and immediately go to sleep
   m_display.hibernate();
 
+  DisablePower();
+
   return true;
 }
 
@@ -69,17 +73,21 @@ template<class Driver>
 void
 ScreenDriver<Driver>::DeInit()
 {
+  EnablePower();
+
   m_display.powerOff();
   m_display.end();
 
-  digitalWrite(SCREEN_PIN_PWR, LOW);
+  DisablePower();
 }
 
 template<class Driver>
 void
 ScreenDriver<Driver>::Clear()
 {
+  EnablePower();
   m_display.clearScreen();
+  DisablePower();
 }
 
 template<class Driver>
@@ -88,6 +96,8 @@ ScreenDriver<Driver>::DisplayStandby()
 {
   const char text[] = "Standby";
 
+  EnablePower();
+
   m_display.setRotation(1);
   m_display.setFont(&FreeMonoBold24pt7b);
   m_display.setTextColor(GxEPD_BLACK);
@@ -104,6 +114,8 @@ ScreenDriver<Driver>::DisplayStandby()
     m_display.setCursor(x, y);
     m_display.print(text);
   } while (m_display.nextPage());
+
+  DisablePower();
 }
 
 template<class Driver>
@@ -112,6 +124,8 @@ ScreenDriver<Driver>::DisplayAfterRecording()
 {
   const char text[] = "Recorded";
 
+  EnablePower();
+
   m_display.setRotation(1);
   m_display.setFont(&FreeMonoBold24pt7b);
   m_display.setTextColor(GxEPD_BLACK);
@@ -128,4 +142,20 @@ ScreenDriver<Driver>::DisplayAfterRecording()
     m_display.setCursor(x, y);
     m_display.print(text);
   } while (m_display.nextPage());
+
+  DisablePower();
+}
+
+template<class Driver>
+void
+ScreenDriver<Driver>::EnablePower()
+{
+  digitalWrite(SCREEN_PIN_PWR, HIGH);
+}
+
+template<class Driver>
+void
+ScreenDriver<Driver>::DisablePower()
+{
+  digitalWrite(SCREEN_PIN_PWR, LOW);
 }
