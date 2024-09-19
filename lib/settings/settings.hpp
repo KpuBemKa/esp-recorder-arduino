@@ -30,12 +30,16 @@ constexpr int SPI_PIN_MISO = 2;
 constexpr int SD_PIN_CS = 12;
 
 // Screen pins
-
 constexpr int SCREEN_PIN_CS = 15;
 constexpr int SCREEN_PIN_DC = 23;
 constexpr int SCREEN_PIN_RST = 22;
 constexpr int SCREEN_PIN_BUSY = 21;
 constexpr int SCREEN_PIN_PWR = 20;
+
+// Rotary Encoder
+constexpr int ROT_ENC_PIN_SIA = 5;
+constexpr int ROT_ENC_PIN_SIB = 4;
+constexpr int ROT_ENC_PIN_SW = 3;
 
 constexpr std::string_view VFS_MOUNT_POINT = "/storage";
 

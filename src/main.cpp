@@ -1,158 +1,93 @@
-#include <charconv>
-#include <cstdio>
-#include <ctime>
-#include <dirent.h>
-#include <expected>
-#include <unistd.h>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
-
-#include <Arduino.h>
-
-#include "connection.hpp"
-#include "ftp_client.hpp"
-#include "i2s_sampler.hpp"
-#include "screen_driver.hpp"
-#include "sd_card.hpp"
-#include "settings.hpp"
-#include "wav_writer.hpp"
+#include "main.hpp"
 
 #define LOG(...) Serial.printf(__VA_ARGS__)
 
+RotaryEncoder s_rotary_encoder(16, -16);
 ScreenDriver<GxEPD2_290_T94> s_screen_driver;
 Connection s_connection;
 
 TaskHandle_t s_setup_task_handle = nullptr;
-
-/// @brief
-/// Startup procedure after a reset.
-/// Initializes pins, ePaper screen, Wi-Fi, and synchronizes system time via SNTP.
-void
-StartupSetupExecutor(void*);
-
-/// @brief
-/// Initializes Wi-Fi and starts the SNTP synchronization,
-/// but does no wait for the sync to complete.
-/// @return `true` in case of full success, `false` otherwise
-bool
-ResumeAfterSleep();
-
-/// @brief
-/// Stops the Wi-Fi, configures the recording button to be the wake up source,
-/// and enters into the light sleep mode.
-/// Automatically invokes `ResumeAfterSleep()` after waking up
-void
-EnterDeepSleep();
-
-/// @brief
-/// Initializes needed resources (SPI bus, SD card, screen driver, etc.),
-/// records audio into a .wav file with timestamp in its name,
-/// then tries to send all stored .wav files to the server,
-/// after which they will be deleted if successfully delivered.
-/// @return `true` in case of full success, `false` otherwise
-bool
-StartRecordingProcess();
-
-/// @brief
-/// Initializes the I2S audio sampler,
-/// records data from it into a temporary .wav file while the recording button
-/// is pushed, renames the temp file to a name which contains the device name
-/// and a timestamp.
-///
-/// Note: Because `ResumeAfterSleep()` does not wait for system time to
-/// synchronize via SNTP, file timestamp may be inaccurate if recording is short
-/// enough.
-/// @return `true` if recording was successful & file renamed, `false` otherwise
-bool
-RecordMicro();
-
-/// @brief Sends all stored .wav files to the server, and deletes them if
-/// transfer was a success
-/// @return amount of files uploaded to the server
-std::size_t
-SendStoredFilesToServer();
-
-bool
-UploadFileAndDelete(FtpClient& ftp_client,
-                    const std::string_view file_path,
-                    const std::string_view remote_new_name);
-
-/// @brief Check if the recording button is pressed
-/// @return `true` if recording should be started, `false` otherwise
-bool
-IsRecButtonPressed();
-
-// void
-// SetLedState(const bool is_enabled);
-
-/// @brief Renames the file at `temp_tile_path`
-/// to contain date and time in its name
-/// @param temp_file_path path to the temporary .wav
-/// file into which the mic recording was stored
-/// @return `true` if successful, `false` otherwise
-bool
-RenameFile(const std::string_view temp_file_path);
-
-/// @brief Returns an array of file names in the root directory
-/// which should be sent to the remote server
-/// @param max_amount maximum amount if file names to return
-/// @param offset ignore first `offset` files
-/// @return An array of file names in the root directory
-/// which should be sent to the remote server
-std::vector<std::string>
-GetWavFileNames(const std::size_t max_amount, const std::size_t offset);
-
-/// @brief Checks if the file's extension at `file_path` is .wav
-/// @param file_path path to the file to check
-/// @return `true` if `file_path` is a .wav file, `false` otherwise
-bool
-IsWavFile(const std::string_view file_path);
-
-/// @brief Just adds _(1) to the end of the file name
-/// @param file_path file to the path of which name should be changed
-/// @return new file path
-std::string
-AppendNumberToName(const std::string_view file_path);
+TaskHandle_t s_misc_handle = nullptr;
 
 void
 setup()
 {
   Serial.begin(115200);
 
-  pinMode(BUTTON_PIN, INPUT); // set the pullup
-  // pinMode(BUTTON_PIN, INPUT_PULLUP); // set the pullup
-  // digitalWrite(BUTTON_PIN, HIGH);    // activate the pullup
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  digitalWrite(BUTTON_PIN, HIGH); // activate the pullup
 
   SPI.begin(SPI_PIN_CLK, SPI_PIN_MISO, SPI_PIN_MOSI);
   if (SPI.bus() == nullptr) {
     Serial.println("Failed to init SPI.\n");
   }
 
+  s_rotary_encoder.Init(ROT_ENC_PIN_SIA, ROT_ENC_PIN_SIB, ROT_ENC_PIN_SW);
+
   // manage wi-fi startup, time sync & ePaper initialization in a separate thread
   // to start the recording process as quick as possible
-  xTaskCreate(StartupSetupExecutor, "Setup_Executor", 1024 * 4, nullptr, 8, &s_setup_task_handle);
-  // s_setup_thread = std::thread(StartupSetup);
-  // StartupSetup();
-
-  // if (!IsRecButtonPressed()) {
-  //   delay(100);
-  //   return;
-  // }
-
-  // StartRecordingProcess();
+  // xTaskCreate(StartupSetupExecutor, "Setup_Executor", 4096, nullptr, 8, &s_setup_task_handle);
+  // xTaskCreate(
+  //   [](void*) {
+  //     while (true) {
+  //       Serial.println(s_rotary_encoder.GetPosition());
+  //       vTaskDelay(pdMS_TO_TICKS(250));
+  //     }
+  //   },
+  //   "Setup_Executor",
+  //   4096,
+  //   nullptr,
+  //   8,
+  //   &s_misc_handle);
 }
 
 void
 loop()
 {
-  if (!IsRecButtonPressed()) {
-    delay(100);
-    return;
+  static int last = s_rotary_encoder.GetPosition();
+  const int now = s_rotary_encoder.GetPosition();
+
+  if (last != now) {
+    Serial.println(now);
+    last = now;
   }
 
-  StartRecordingProcess();
+  // vTaskDelay(pdMS_TO_TICKS(1000));
+  // if (s_isr_flag) {
+  //   s_rotary_encoder.Tick();
+  //   s_isr_flag = false;
+  //   Serial.println(s_rotary_encoder.GetCounter());
+  // }
+  // while (num != count) {
+  //   i = 1;
+  //   num = count;
+  //   Serial.println(num);
+  // }
+  // if ((digitalRead(ROT_ENC_PIN_SW) == LOW) && i == 1) {
+  //   i = 0;
+  //   count = 0;
+  //   while (digitalRead(ROT_ENC_PIN_SW) == LOW)
+  //     ;
+  // }
+
+  // Serial.println(s_rotary_encoder.GetCounter());
+  // vTaskDelay(pdMS_TO_TICKS(250));
+
+  // while (true) {
+  //   Serial.flush();
+  //   delay(100);
+  // }
+  // Serial.print(digitalRead(ROT_ENC_PIN_SIA));
+  // Serial.print(" ");
+  // Serial.println(digitalRead(ROT_ENC_PIN_SW));
+
+  // if (!IsRecButtonPressed()) {
+  //   // Serial.println(s_rotary_encoder.GetCounter());
+  //   delay(100);
+  //   return;
+  // }
+
+  // StartRecordingProcess();
   // EnterDeepSleep();
 }
 
@@ -327,7 +262,8 @@ EnterDeepSleep()
 
   // s_screen_driver.DeInit();
 
-  // gpio_wakeup_enable(static_cast<gpio_num_t>(BUTTON_PIN), gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
+  // gpio_wakeup_enable(static_cast<gpio_num_t>(BUTTON_PIN),
+  // gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
   // esp_sleep_enable_gpio_wakeup();
 
   // esp_result = esp_light_sleep_start();
