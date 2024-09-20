@@ -77,26 +77,31 @@ Connection::IsWifiConnected()
   return WiFi.isConnected();
 }
 
-void
+std::expected<tm, bool>
 Connection::SntpTimeSync()
 {
   LOG("Syncronizing system time...\n");
 
   if (!IsWifiConnected()) {
-    LOG("Wi-Fi is not connected. Aborting...");
-    return;
+    LOG("Wi-Fi is not connected. Aborting...\n");
+    return std::unexpected(false);
   }
 
   configTime(0, 0, "pool.ntp.org");
 
   tm time_info;
   if (!getLocalTime(&time_info)) {
+    
     LOG("Failed to obtain time.\n");
+    return std::unexpected(false);
   }
-  
+
   m_time_sync_attempted = true;
 
-#if DEBUG_COM
+  return time_info;
+
+// #if DEBUG_COM
+#if 0
   time_info.tm_mon += 1;
 
   Serial.print("Local time: ");

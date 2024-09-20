@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ctime>
+#include <expected>
 #include <string_view>
 
 #include "esp_wifi.h"
@@ -12,7 +13,7 @@ public:
   bool DeInitWifi();
   bool IsWifiConnected();
 
-  void SntpTimeSync();
+  std::expected<tm, bool> SntpTimeSync();
   bool WasTimeSyncAttempted() { return m_time_sync_attempted; }
 
 private:

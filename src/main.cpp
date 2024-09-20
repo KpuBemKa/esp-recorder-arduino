@@ -5,10 +5,10 @@
 RotaryEncoder s_rotary_encoder(16, -16);
 ScreenDriver<GxEPD2_290_T94> s_screen_driver;
 Connection s_connection;
+Timeout s_sleep_timeout;
+PCF8563 s_rtc_driver;
 
 TaskHandle_t s_setup_task_handle = nullptr;
-
-Timeout s_sleep_timeout;
 
 void
 setup()
@@ -22,8 +22,10 @@ setup()
   if (SPI.bus() == nullptr) {
     Serial.println("Failed to init SPI.\n");
   }
+  Wire.setPins(I2C_PIN_SDA, I2C_PIN_SCL);
 
   s_rotary_encoder.Init(ROT_ENC_PIN_SIA, ROT_ENC_PIN_SIB, ROT_ENC_PIN_SW);
+  s_rtc_driver.Init();
 
   // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
   // thread to start the recording process as quick as possible
@@ -65,7 +67,10 @@ StartupSetupExecutor(void*)
   s_sleep_timeout.Init(10'000);
 
   s_connection.InitWifi(WIFI_SSID, WIFI_PASS);
-  s_connection.SntpTimeSync();
+
+  const std::expected<tm, bool> result = s_connection.SntpTimeSync();
+  result.has_value() ? s_rtc_driver.SetExternalTime(result.value())
+                     : s_rtc_driver.SetInternalTimeFromExternal();
 
   // s_screen_driver.Init();
   // s_screen_driver.Clear();

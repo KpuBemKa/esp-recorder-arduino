@@ -26,6 +26,9 @@ constexpr int SPI_PIN_CLK = 6;
 constexpr int SPI_PIN_MOSI = 7;
 constexpr int SPI_PIN_MISO = 2;
 
+constexpr int I2C_PIN_SDA = 5;
+constexpr int I2C_PIN_SCL = 4;
+
 // SD card pins
 constexpr int SD_PIN_CS = 12;
 
@@ -37,8 +40,8 @@ constexpr int SCREEN_PIN_BUSY = 21;
 constexpr int SCREEN_PIN_PWR = 20;
 
 // Rotary Encoder
-constexpr int ROT_ENC_PIN_SIA = 5;
-constexpr int ROT_ENC_PIN_SIB = 4;
+constexpr int ROT_ENC_PIN_SIA = 11;
+constexpr int ROT_ENC_PIN_SIB = 10;
 constexpr int ROT_ENC_PIN_SW = 3;
 
 constexpr std::string_view VFS_MOUNT_POINT = "/storage";
