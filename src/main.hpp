@@ -5,6 +5,7 @@
 #include <expected>
 #include <unistd.h>
 
+#include "driver/gptimer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -19,6 +20,7 @@
 #include "sd_card.hpp"
 #include "settings.hpp"
 #include "wav_writer.hpp"
+#include "timeout.hpp"
 
 /// @brief
 /// Startup procedure after a reset.
@@ -26,12 +28,15 @@
 void
 StartupSetupExecutor(void*);
 
+void
+StartSetupTask();
+
 /// @brief
 /// Stops the Wi-Fi, configures the recording button to be the wake up source,
 /// and enters into the light sleep mode.
 /// Automatically invokes `ResumeAfterSleep()` after waking up
-void
-EnterDeepSleep();
+bool
+EnterSleep();
 
 /// @brief
 /// Initializes needed resources (SPI bus, SD card, screen driver, etc.),

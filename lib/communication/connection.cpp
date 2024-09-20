@@ -82,6 +82,11 @@ Connection::SntpTimeSync()
 {
   LOG("Syncronizing system time...\n");
 
+  if (!IsWifiConnected()) {
+    LOG("Wi-Fi is not connected. Aborting...");
+    return;
+  }
+
   configTime(0, 0, "pool.ntp.org");
 
   tm time_info;

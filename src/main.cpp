@@ -7,7 +7,8 @@ ScreenDriver<GxEPD2_290_T94> s_screen_driver;
 Connection s_connection;
 
 TaskHandle_t s_setup_task_handle = nullptr;
-TaskHandle_t s_misc_handle = nullptr;
+
+Timeout s_sleep_timeout;
 
 void
 setup()
@@ -24,81 +25,47 @@ setup()
 
   s_rotary_encoder.Init(ROT_ENC_PIN_SIA, ROT_ENC_PIN_SIB, ROT_ENC_PIN_SW);
 
-  // manage wi-fi startup, time sync & ePaper initialization in a separate thread
-  // to start the recording process as quick as possible
-  // xTaskCreate(StartupSetupExecutor, "Setup_Executor", 4096, nullptr, 8, &s_setup_task_handle);
-  // xTaskCreate(
-  //   [](void*) {
-  //     while (true) {
-  //       Serial.println(s_rotary_encoder.GetPosition());
-  //       vTaskDelay(pdMS_TO_TICKS(250));
-  //     }
-  //   },
-  //   "Setup_Executor",
-  //   4096,
-  //   nullptr,
-  //   8,
-  //   &s_misc_handle);
+  // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
+  // thread to start the recording process as quick as possible
+  StartSetupTask();
 }
 
 void
 loop()
 {
-  static int last = s_rotary_encoder.GetPosition();
-  const int now = s_rotary_encoder.GetPosition();
+  if (IsRecButtonPressed()) {
+    s_sleep_timeout.Stop();
 
-  if (last != now) {
-    Serial.println(now);
-    last = now;
+    StartRecordingProcess();
+
+    s_sleep_timeout.Reset();
+    s_sleep_timeout.Start();
   }
 
-  // vTaskDelay(pdMS_TO_TICKS(1000));
-  // if (s_isr_flag) {
-  //   s_rotary_encoder.Tick();
-  //   s_isr_flag = false;
-  //   Serial.println(s_rotary_encoder.GetCounter());
-  // }
-  // while (num != count) {
-  //   i = 1;
-  //   num = count;
-  //   Serial.println(num);
-  // }
-  // if ((digitalRead(ROT_ENC_PIN_SW) == LOW) && i == 1) {
-  //   i = 0;
-  //   count = 0;
-  //   while (digitalRead(ROT_ENC_PIN_SW) == LOW)
-  //     ;
-  // }
+  if (s_sleep_timeout.IsTimeoutReached()) {
+    s_sleep_timeout.DeInit();
 
-  // Serial.println(s_rotary_encoder.GetCounter());
-  // vTaskDelay(pdMS_TO_TICKS(250));
+    EnterSleep();
+  }
 
-  // while (true) {
-  //   Serial.flush();
-  //   delay(100);
-  // }
-  // Serial.print(digitalRead(ROT_ENC_PIN_SIA));
-  // Serial.print(" ");
-  // Serial.println(digitalRead(ROT_ENC_PIN_SW));
+  static int rotary_pos = s_rotary_encoder.GetPosition();
+  int new_rotary_pos = s_rotary_encoder.GetPosition();
+  if (rotary_pos != new_rotary_pos) {
+    rotary_pos = new_rotary_pos;
+    s_sleep_timeout.Reset();
+    Serial.println(rotary_pos);
+  }
 
-  // if (!IsRecButtonPressed()) {
-  //   // Serial.println(s_rotary_encoder.GetCounter());
-  //   delay(100);
-  //   return;
-  // }
-
-  // StartRecordingProcess();
-  // EnterDeepSleep();
+  vTaskDelay(pdMS_TO_TICKS(50));
 }
 
 void
 StartupSetupExecutor(void*)
 {
+  s_sleep_timeout.Init(10'000);
+
   s_connection.InitWifi(WIFI_SSID, WIFI_PASS);
   s_connection.SntpTimeSync();
-
-  // ScreenDriver<GxEPD2_290_T94> screen_driver;
-  // screen_driver.Init();
 
   // s_screen_driver.Init();
   // s_screen_driver.Clear();
@@ -106,7 +73,15 @@ StartupSetupExecutor(void*)
   // s_screen_driver.DisplayAfterRecording();
   // s_screen_driver.DeInit();
 
+  s_sleep_timeout.Start();
+
   vTaskDelete(s_setup_task_handle);
+}
+
+void
+StartSetupTask()
+{
+  xTaskCreate(StartupSetupExecutor, "Setup_Executor", 4096, nullptr, 8, &s_setup_task_handle);
 }
 
 bool
@@ -125,7 +100,7 @@ StartRecordingProcess()
     const TickType_t wait_start = xTaskGetTickCount();
     const TickType_t wait_end = wait_start + pdMS_TO_TICKS(5'000);
     while (s_connection.IsWifiConnected() && xTaskGetTickCount() <= wait_end) {
-      vTaskDelay(pdMS_TO_TICKS(500));
+      vTaskDelay(pdMS_TO_TICKS(250));
     }
 
     const std::size_t upload_count = SendStoredFilesToServer();
@@ -253,36 +228,35 @@ RenameFile(const std::string_view temp_file_path)
   return true;
 }
 
-void
-EnterDeepSleep()
+bool
+EnterSleep()
 {
-  // if (!s_connection.DeInitWifi()) {
-  //   LOG("%s:%d | Failed to de-initialize Wi-Fi.\n", __FILE__, __LINE__);
-  // }
+  LOG("Preparing to enter into sleep mode...\n");
 
-  // s_screen_driver.DeInit();
+  if (!s_connection.DeInitWifi()) {
+    LOG("Failed to de-initialize Wi-Fi.\n");
+  }
 
-  // gpio_wakeup_enable(static_cast<gpio_num_t>(BUTTON_PIN),
-  // gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
-  // esp_sleep_enable_gpio_wakeup();
+  s_screen_driver.DeInit();
+  s_rotary_encoder.PrepareForSleep();
+  gpio_wakeup_enable(static_cast<gpio_num_t>(BUTTON_PIN), gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
 
-  // esp_result = esp_light_sleep_start();
-  // if (esp_result != ESP_OK) {
-  //   LOG("%s:%d | Failed to enter sleep mode: %s", __FILE__, __LINE__,
-  //   esp_err_to_name(esp_result)); return false;
-  // }
+  LOG("Entering sleep...\n");
+  Serial.flush();
 
-  // LOG("Awakened from sleep.");
+  const esp_err_t esp_result = esp_light_sleep_start();
+  if (esp_result != ESP_OK) {
+    LOG(
+      "%s:%d | Failed to enter sleep mode: %s\n", __FILE__, __LINE__, esp_err_to_name(esp_result));
+    return false;
+  }
 
-  // esp_result = ResumeAfterSleep();
-  // if (esp_result != ESP_OK) {
-  //   LOG("%s:%d | Failed resume systems after waking up: %s",
-  //       __FILE__,
-  //       __LINE__,
-  //       esp_err_to_name(esp_result));
-  // }
+  LOG("Awakened from sleep.\n");
 
-  // // return esp_result;
+  StartSetupTask();
+
+  return true;
   // return true;
 }
 

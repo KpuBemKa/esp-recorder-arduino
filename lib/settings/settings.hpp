@@ -60,3 +60,4 @@ constexpr std::string_view CONFIG_FTP_PASSWORD = "Admin0308";
 #define DEBUG_COM 1
 #define DEBUG_SCREEN 1
 #define DEBUG_SPI 1
+#define DEBUG_TIMER 1
