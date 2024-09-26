@@ -9,7 +9,8 @@
 // #endif
 // #include "esp_log.h"
 
-#include "SD.h"
+#include <SD.h>
+#include <SPI.h>
 
 #include "settings.hpp"
 
@@ -24,87 +25,94 @@ namespace sd {
 bool
 SDCard::Init()
 {
-    LOG("Initializing SD card...\n");
+  LOG("Initializing SD card...\n");
 
-    if (m_is_init) {
-        LOG("SD card is already initialized.\n");
-        return ESP_OK;
-    }
+  if (m_is_init) {
+    LOG("SD card is already initialized.\n");
+    return ESP_OK;
+  }
 
-    const bool b_result = SD.begin(SD_PIN_CS, SPI, 4'000'000UL, VFS_MOUNT_POINT.data(), 5, false);
-    // const bool b_result = SD.begin(SD_PIN_CS);
-    if (!b_result) {
-        LOG("Failed to mount the SD card.\n");
-        return false;
-    }
+  const bool b_result = SD.begin(pins::SD_CS, SPI, 4'000'000UL, VFS_MOUNT_POINT.data(), 5, false);
 
-    const sdcard_type_t card_type = SD.cardType();
-    if (card_type == sdcard_type_t::CARD_NONE) {
-        LOG("No SD card detected.\n");
-        return false;
-    }
+  // const bool b_result = SD.begin(SD_PIN_CS);
+  if (!b_result) {
+    LOG("Failed to mount the SD card.\n");
+    return false;
+  }
+
+  const sdcard_type_t card_type = SD.cardType();
+  if (card_type == sdcard_type_t::CARD_NONE) {
+    LOG("No SD card detected.\n");
+    return false;
+  }
 
 #if DEBUG_SD
-    LOG("SD card type: ");
-    switch (card_type) {
-        case sdcard_type_t::CARD_SD:
-            LOG("SDSC\n");
-            break;
+  LOG("SD card type: ");
+  switch (card_type) {
+    case sdcard_type_t::CARD_SD:
+      LOG("SDSC\n");
+      break;
 
-        case sdcard_type_t::CARD_SDHC:
-            LOG("SDHC\n");
-            break;
+    case sdcard_type_t::CARD_SDHC:
+      LOG("SDHC\n");
+      break;
 
-        case sdcard_type_t::CARD_MMC:
-            LOG("SDMMC\n");
-            break;
+    case sdcard_type_t::CARD_MMC:
+      LOG("SDMMC\n");
+      break;
 
-        case sdcard_type_t::CARD_UNKNOWN:
-            LOG("UNKNOWN\n");
-            break;
-    }
+    case sdcard_type_t::CARD_UNKNOWN:
+      LOG("UNKNOWN\n");
+      break;
+  }
 
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    LOG("SD Card Size: %lluMB\n", cardSize);
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  LOG("SD Card Size: %lluMB\n", cardSize);
 #endif
 
-    m_is_init = true;
+  m_is_init = true;
 
-    return true;
+  return true;
 }
 
 void
 SDCard::DeInit()
 {
-    LOG("De-initializing the SD card...\n");
+  LOG("De-initializing the SD card...\n");
 
-    if (!m_is_init) {
-        LOG("SD card is not initialized. Skipping the de-initialization...\n");
-    }
+  // if (!m_is_init) {
+  //   LOG("SD card is not initialized. Skipping the de-initialization...\n");
+  // }
 
-    SD.end();
+  SD.end();
 
-    m_is_init = false;
+  m_is_init = false;
 }
 
-SDCard::~SDCard()
-{
-    DeInit();
-}
+// SDCard::~SDCard()
+// {
+//   DeInit();
+// }
 
 std::string
 SDCard::GetFilePath(const std::string_view file_name)
 {
-    std::string file_path;
-    file_path.reserve(VFS_MOUNT_POINT.size() + sizeof('/') + file_path.size() + sizeof('\0'));
-    file_path.append(VFS_MOUNT_POINT).append(1, '/').append(file_name);
-    return file_path;
+  std::string file_path;
+  file_path.reserve(VFS_MOUNT_POINT.size() + sizeof('/') + file_path.size() + sizeof('\0'));
+
+  file_path.append(VFS_MOUNT_POINT);
+  if (file_name[0] != '/') {
+    file_path.append(1, '/');
+  }
+  file_path.append(file_name);
+
+  return file_path;
 }
 
 std::string_view
 SDCard::GetMountPoint()
 {
-    return VFS_MOUNT_POINT;
+  return VFS_MOUNT_POINT;
 }
 
 } // namespace sd

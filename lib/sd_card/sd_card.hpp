@@ -13,7 +13,7 @@ class SDCard
     bool Init();
     void DeInit();
 
-    ~SDCard();
+    // ~SDCard();
 
     /// @brief Creates a full file path string for `file_name`, which includes SD card VFS mount
     /// point

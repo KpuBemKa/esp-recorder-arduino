@@ -10,6 +10,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "Freenove_WS2812_Lib_for_ESP32.h"
 #include <Arduino.h>
 
 #include "connection.hpp"
@@ -32,13 +33,15 @@ StartupSetupExecutor(void*);
 void
 StartSetupTask();
 
-
 /// @brief
 /// Stops the Wi-Fi, configures the recording button to be the wake up source,
 /// and enters into the light sleep mode.
 /// Automatically invokes `ResumeAfterSleep()` after waking up
 bool
 EnterSleep();
+
+void
+ResumeAfterSleep();
 
 /// @brief
 /// Initializes needed resources (SPI bus, SD card, screen driver, etc.),
@@ -109,3 +112,15 @@ IsWavFile(const std::string_view file_path);
 /// @return new file path
 std::string
 AppendNumberToName(const std::string_view file_path);
+
+void
+UpdateLeds();
+
+uint8_t
+RotaryPositionToByte();
+
+bool
+DoesFileExist(const std::string_view file_path);
+
+void
+AsyncDisplayImageOnScreen2(const std::string_view file_path);

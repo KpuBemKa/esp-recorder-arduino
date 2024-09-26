@@ -61,6 +61,8 @@
       "stop_token": "cpp",
       "thread": "cpp",
       "charconv": "cpp",
-      "expected": "cpp"
+      "expected": "cpp",
+      "chrono": "cpp",
+      "iostream": "cpp"
     }
 }

@@ -2,9 +2,13 @@
 
 #include <Arduino.h>
 
-RotaryEncoder::RotaryEncoder(const int max_position, const int min_position)
-  : m_max_position(max_position)
+RotaryEncoder::RotaryEncoder(const int default_position,
+                             const int min_position,
+                             const int max_position)
+  : m_default_position(default_position)
   , m_min_position(min_position)
+  , m_max_position(max_position)
+  , m_position(default_position)
 {
 }
 

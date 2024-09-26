@@ -1,7 +1,9 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <string_view>
+#include <tuple>
 
 // #include "hal/gpio_types.h"
 
@@ -9,40 +11,64 @@ constexpr std::size_t MIC_SAMPLE_RATE = 16'000; // Hz
 // constexpr std::size_t MIC_SAMPLE_RATE = 32'000; // Hz
 // constexpr std::size_t MIC_SAMPLE_RATE = 44'100; // Hz
 
-// I2S microphone pins
-constexpr int I2S_MIC_SERIAL_DATA = 9;
-constexpr int I2S_MIC_SERIAL_CLOCK = 18;
-constexpr int I2S_MIC_WORD_SELECT = 19;
-// constexpr int I2S_MIC_SERIAL_DATA = 22;
-// constexpr int I2S_MIC_LEFT_RIGHT_CLOCK = 21;
+namespace pins {
 
-// Record button pin
-constexpr int BUTTON_PIN = 13;
+// I2S microphone
+constexpr int I2S_MIC_SERIAL_DATA = 4;
+constexpr int I2S_MIC_SERIAL_CLOCK = 5;
+constexpr int I2S_MIC_WORD_SELECT = 0;
 
-// Internal addressable RGB LED
-constexpr int ARGB_LED_PIN = 8;
+// Record button
+constexpr int BUTTON = 1;
 
-constexpr int SPI_PIN_CLK = 6;
-constexpr int SPI_PIN_MOSI = 7;
-constexpr int SPI_PIN_MISO = 2;
+// SPI
+constexpr int SPI_CLK = 6;
+constexpr int SPI_MOSI = 7;
+constexpr int SPI_MISO = 2;
 
-constexpr int I2C_PIN_SDA = 5;
-constexpr int I2C_PIN_SCL = 4;
+// I2C
+constexpr int I2C_SCL = 13;
+constexpr int I2C_SDA = 12;
 
-// SD card pins
-constexpr int SD_PIN_CS = 12;
+// SD card
+// constexpr int SD_CS = 9;
+constexpr int SD_CS = 17;
 
-// Screen pins
-constexpr int SCREEN_PIN_CS = 15;
-constexpr int SCREEN_PIN_DC = 23;
-constexpr int SCREEN_PIN_RST = 22;
-constexpr int SCREEN_PIN_BUSY = 21;
-constexpr int SCREEN_PIN_PWR = 20;
+// Screen
+constexpr int SCREEN_PDC = 15;
+
+constexpr int SCREEN_1_CS = 23;
+constexpr int SCREEN_1_RST = 22;
+constexpr int SCREEN_1_BUSY = 21;
+
+constexpr int SCREEN_2_CS = 20;
+constexpr int SCREEN_2_RST = 19;
+constexpr int SCREEN_2_BUSY = 18;
+
+// Addressable RGB LED strip
+constexpr int ARGB_LED = 8;
 
 // Rotary Encoder
-constexpr int ROT_ENC_PIN_SIA = 11;
-constexpr int ROT_ENC_PIN_SIB = 10;
-constexpr int ROT_ENC_PIN_SW = 3;
+// constexpr int ROT_ENC_SIA = 10;
+// constexpr int ROT_ENC_SIB = 11;
+constexpr int ROT_ENC_SIA = 11;
+constexpr int ROT_ENC_SIB = 10;
+constexpr int ROT_ENC_SW = 3;
+
+} // namespace pins
+
+constexpr int ARGB_LEDS_COUNT = 5;
+constexpr std::array<std::tuple<uint8_t, uint8_t, uint8_t>, 3> ARGB_COLORS = { {
+  { 255, 0, 0 },
+  { 0, 255, 0 },
+  { 0, 0, 255 },
+} };
+
+constexpr int ROT_MAX_VALUE = 32;
+constexpr int ROT_MIN_VALUE = 0;
+constexpr int ROT_DEF_VALUE = 1;
+
+constexpr std::size_t SLEEP_TIMEOUT_MS = 10'000;
 
 constexpr std::string_view VFS_MOUNT_POINT = "/storage";
 

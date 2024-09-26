@@ -121,7 +121,7 @@ Timeout::Stop()
 bool
 Timeout::Reset()
 {
-  LOG("Resetting timeout timer...\n");
+  // LOG("Resetting timeout timer...\n");
 
   m_callback_fired = false;
 

@@ -35,10 +35,10 @@ constexpr i2s_std_config_t I2S_MIC_CONFIG = {
     
   .gpio_cfg = {
     .mclk = I2S_GPIO_UNUSED,  
-    .bclk = static_cast<gpio_num_t>(I2S_MIC_SERIAL_CLOCK),
-    .ws   = static_cast<gpio_num_t>(I2S_MIC_WORD_SELECT),
+    .bclk = static_cast<gpio_num_t>(pins::I2S_MIC_SERIAL_CLOCK),
+    .ws   = static_cast<gpio_num_t>(pins::I2S_MIC_WORD_SELECT),
     .dout = gpio_num_t::GPIO_NUM_NC,
-    .din  = static_cast<gpio_num_t>(I2S_MIC_SERIAL_DATA),
+    .din  = static_cast<gpio_num_t>(pins::I2S_MIC_SERIAL_DATA),
     .invert_flags = {
       .mclk_inv = false,
       .bclk_inv = false,
