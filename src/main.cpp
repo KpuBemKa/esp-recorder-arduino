@@ -47,6 +47,8 @@ setup()
   s_screen_1_driver.Init();
   s_screen_2_driver.Init();
 
+  s_sd_card.EnsureFreeSpace(FULL_STORAGE_THRESHOLD);
+
   // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
   // thread to start the recording process as quick as possible
   StartSetupTask();
@@ -121,6 +123,8 @@ StartupSetupExecutor(void*)
                 time_info.tm_min,
                 time_info.tm_sec);
 
+  SetScreen2State(ScreenState::Standby, true);
+
   // Start the sleep timeout
   s_sleep_timeout.Start();
 
@@ -162,7 +166,7 @@ StartRecordingProcess()
 bool
 RecordMicro()
 {
-  AsyncDisplayImageOnScreen2("/recording_152_296.bmp");
+  SetScreen2State(ScreenState::Recording, true);
 
   // create & initialize the I2S sampler which samples the microphone
   I2sSampler i2s_sampler;
@@ -205,7 +209,7 @@ RecordMicro()
   // finish the writing
   writer.Close();
 
-  AsyncDisplayImageOnScreen2("/recorded_152_296.bmp");
+  SetScreen2State(ScreenState::Recorded, true);
 
   // wait for system time to synchronize before renaming the file
   const TickType_t wait_start = xTaskGetTickCount();
@@ -231,32 +235,17 @@ IsRecButtonPressed()
 bool
 RenameFile(const std::string_view temp_file_path)
 {
-  constexpr std::size_t file_name_length =
-    DEVICE_NAME.length() + sizeof("_0000-00-00_00-00-00.wav");
-
   // Get current time
   const std::time_t now_time = std::time(nullptr);
-  const std::tm* dt = std::localtime(&now_time);
-
-  // Create the buffer, and set it to the needed length
-  std::string new_file_name(file_name_length, '\0');
-
-  sprintf(new_file_name.data(),
-          "%.*s_%04d-%02d-%02d_%02d-%02d-%02d.wav",
-          DEVICE_NAME.length(),
-          DEVICE_NAME.data(),
-          dt->tm_year + 1900,
-          dt->tm_mon + 1,
-          dt->tm_mday,
-          dt->tm_hour,
-          dt->tm_min,
-          dt->tm_sec);
+  std::string new_file_name(DEVICE_NAME);
+  new_file_name.append("_").append(std::to_string(now_time)).append(".wav");
 
   std::string new_path = sd::SDCard::GetFilePath(new_file_name);
 
   // make another name if file exists
   if (access(new_path.c_str(), F_OK) == 0) {
-    new_path = AppendNumberToName(new_path);
+    new_file_name = DEVICE_NAME;
+    new_file_name.append("_").append(std::to_string(now_time + 1)).append(".wav");
   }
 
   Serial.printf("New file name: %s\n", new_file_name.c_str());
@@ -282,7 +271,7 @@ EnterSleep()
 {
   LOG("Preparing to enter into sleep mode...\n");
 
-  s_screen_2_driver.DrawImageFromStorage("/standby_152_296.bmp", 0, 0, false);
+  SetScreen2State(ScreenState::Standby, false);
 
   // De-init the SD card BEFORE de-initializing screens
   // GxEDP2 deinitializes SPI bus by itself
@@ -412,7 +401,6 @@ UploadFileAndDelete(FtpClient& ftp_client,
 std::vector<std::string>
 GetWavFileNames(const std::size_t max_amount, const std::size_t offset)
 {
-
   DIR* dir;
   dir = opendir(sd::SDCard::GetMountPoint().data());
 
@@ -517,4 +505,39 @@ AsyncDisplayImageOnScreen2(const std::string_view file_path)
   };
 
   xTaskCreate(lambda_executor, "Screen_2", 4096, const_cast<char*>(file_path.data()), 8, nullptr);
+}
+
+void
+SetScreen2State(const ScreenState new_state, bool async)
+{
+  static ScreenState screen_state = ScreenState::Standby;
+  if (screen_state == new_state) {
+    return;
+  }
+  screen_state = new_state;
+
+  std::string_view image_path = "";
+  switch (screen_state) {
+    case ScreenState::Standby:
+      image_path = "/standby_152_296.bmp";
+      break;
+
+    case ScreenState::Recording:
+      image_path = "/recording_152_296.bmp";
+      break;
+
+    case ScreenState::Recorded:
+      image_path = "/recorded_152_296.bmp";
+      break;
+
+    default:
+      Serial.printf("Unknown screen state: %d\n", static_cast<int>(screen_state));
+      return;
+  }
+
+  if (async) {
+    AsyncDisplayImageOnScreen2(image_path);
+  } else {
+    s_screen_2_driver.DrawImageFromStorage(image_path, 0, 0, false);
+  }
 }

@@ -24,6 +24,13 @@
 #include "timeout.hpp"
 #include "wav_writer.hpp"
 
+enum class ScreenState
+{
+  Standby,
+  Recording,
+  Recorded
+};
+
 /// @brief
 /// Startup procedure after a reset.
 /// Initializes pins, ePaper screen, Wi-Fi, and synchronizes system time via SNTP.
@@ -124,3 +131,6 @@ DoesFileExist(const std::string_view file_path);
 
 void
 AsyncDisplayImageOnScreen2(const std::string_view file_path);
+
+void
+SetScreen2State(const ScreenState new_state, bool async);

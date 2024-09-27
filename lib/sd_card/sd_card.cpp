@@ -1,6 +1,9 @@
 #include "sd_card.hpp"
 
+#include <charconv>
 #include <cstdio>
+#include <dirent.h>
+#include <filesystem>
 
 // #if DEBUG_SD
 // #define LOG_LOCAL_LEVEL esp_log_level_t::ESP_LOG_DEBUG
@@ -89,6 +92,45 @@ SDCard::DeInit()
   m_is_init = false;
 }
 
+uint64_t
+SDCard::GetFreeSpace()
+{
+  return SD.totalBytes() - SD.usedBytes();
+}
+
+bool
+SDCard::EnsureFreeSpace(const uint64_t& free_bytes)
+{
+  const uint64_t free_space = GetFreeSpace() / (1024 * 1024);
+  if (free_space > FULL_STORAGE_THRESHOLD) {
+    return;
+  }
+
+  std::vector<FileInfo> wav_infos = GetAllWavInfo();
+  std::sort(wav_infos.begin(), wav_infos.end(), FileInfo::SortTimestamp);
+
+  const std::filesystem::path base_path = GetMountPointFs();
+  int64_t bytes_to_free = free_bytes - GetFreeSpace();
+  std::size_t delete_counter = 0;
+
+  while (bytes_to_free > 0) {
+    std::filesystem::path file_path = base_path;
+    file_path /= DEVICE_NAME;
+    file_path += "_";
+    file_path += std::to_string(wav_infos[delete_counter].timestamp);
+    file_path += ".wav";
+
+    std::filesystem::remove(file_path);
+
+    bytes_to_free -= wav_infos[delete_counter].size;
+    ++delete_counter;
+  }
+
+  LOG("%d files have been deleted.", delete_counter);
+
+  return true;
+}
+
 // SDCard::~SDCard()
 // {
 //   DeInit();
@@ -109,10 +151,97 @@ SDCard::GetFilePath(const std::string_view file_name)
   return file_path;
 }
 
+std::size_t
+SDCard::GetFileSize(const std::string_view file_path)
+{
+  return std::filesystem::file_size(std::filesystem::path(file_path));
+
+  // struct stat file_stats;
+  // if (stat(file_path.data(), &file_stats) == -1) {
+  //   perror(file_path.data());
+  //   return 0;
+  // }
+
+  // return file_stats.st_size;
+}
+
 std::string_view
 SDCard::GetMountPoint()
 {
   return VFS_MOUNT_POINT;
+}
+
+std::filesystem::path
+SDCard::GetMountPointFs()
+{
+  return std::filesystem::path(VFS_MOUNT_POINT);
+}
+
+bool
+SDCard::HasExtension(const std::string_view file, const std::string_view extension)
+{
+  return file.substr(file.find_last_of(".")) == extension;
+}
+
+std::size_t
+SDCard::GetTimestampFromName(const std::string_view file_name)
+{
+  // extract the timestamp from the file name
+  const std::size_t start_index = file_name.find_first_of("_");
+  const std::string_view string_timestamp =
+    file_name.substr(start_index + 1, file_name.find_last_of(".") - start_index - 1);
+
+  // convert it to int
+  std::size_t value = 0;
+  const std::from_chars_result result = std::from_chars(
+    string_timestamp.data(), string_timestamp.data() + string_timestamp.size(), value);
+  if (result.ec == std::errc::invalid_argument) {
+    LOG("Failed to convert `%.*s` to int.", string_timestamp.length(), string_timestamp.data());
+    return 0;
+  }
+
+  return value;
+}
+
+std::vector<FileInfo>
+SDCard::GetAllWavInfo()
+{
+  std::vector<FileInfo> result = {};
+
+  DIR* dir;
+  dir = opendir(GetMountPoint().data());
+
+  if (dir == nullptr) {
+    LOG("Failed to open the mount directory");
+    return result;
+  }
+
+  dirent* dir_entity;
+  while ((dir_entity = readdir(dir)) != nullptr) {
+    // skip the directory entity if it's not a file
+    if (dir_entity->d_type != DT_REG) {
+      continue;
+    }
+
+    const std::string_view file_name(dir_entity->d_name);
+    if (!HasExtension(file_name, ".wav")) {
+      // skip the file if it's not a .wav file
+      continue;
+    }
+
+    const std::size_t timestamp = GetTimestampFromName(file_name);
+    if (timestamp == 0) {
+      // skip the file if there is something wrong with the timestamp
+      continue;
+    }
+
+    result.push_back(
+      FileInfo{ .timestamp = timestamp, .size = GetFileSize(GetFilePath(file_name)) });
+  }
+
+  closedir(dir);
+
+  return result;
 }
 
 } // namespace sd

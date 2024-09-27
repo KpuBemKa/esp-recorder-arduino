@@ -71,6 +71,7 @@ constexpr int ROT_DEF_VALUE = 1;
 constexpr std::size_t SLEEP_TIMEOUT_MS = 10'000;
 
 constexpr std::string_view VFS_MOUNT_POINT = "/storage";
+constexpr uint64_t FULL_STORAGE_THRESHOLD = 100 * 1024 * 1024; // bytes
 
 constexpr std::string_view DEVICE_NAME = "esp-recorder";
 

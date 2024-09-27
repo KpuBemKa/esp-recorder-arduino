@@ -63,6 +63,7 @@
       "charconv": "cpp",
       "expected": "cpp",
       "chrono": "cpp",
-      "iostream": "cpp"
+      "iostream": "cpp",
+      "codecvt": "cpp"
     }
 }
