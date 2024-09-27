@@ -98,11 +98,11 @@ SDCard::GetFreeSpace()
   return SD.totalBytes() - SD.usedBytes();
 }
 
-bool
+void
 SDCard::EnsureFreeSpace(const uint64_t& free_bytes)
 {
-  const uint64_t free_space = GetFreeSpace() / (1024 * 1024);
-  if (free_space > FULL_STORAGE_THRESHOLD) {
+  const uint64_t free_space = GetFreeSpace();
+  if (free_space > free_bytes) {
     return;
   }
 
@@ -120,15 +120,20 @@ SDCard::EnsureFreeSpace(const uint64_t& free_bytes)
     file_path += std::to_string(wav_infos[delete_counter].timestamp);
     file_path += ".wav";
 
-    std::filesystem::remove(file_path);
+    if (!std::filesystem::remove(file_path)) {
+      const auto s = file_path.string();
+      LOG("Failed to delete %.*s", s.length(), s.c_str());
+      ++delete_counter;
+      continue;
+    }
 
     bytes_to_free -= wav_infos[delete_counter].size;
     ++delete_counter;
   }
 
-  LOG("%d files have been deleted.", delete_counter);
+  LOG("%d files have been deleted.\n", delete_counter);
 
-  return true;
+  return;
 }
 
 // SDCard::~SDCard()

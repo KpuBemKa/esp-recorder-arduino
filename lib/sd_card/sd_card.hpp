@@ -27,7 +27,7 @@ public:
   void DeInit();
 
   uint64_t GetFreeSpace();
-  bool EnsureFreeSpace(const uint64_t& free_bytes);
+  void EnsureFreeSpace(const uint64_t& free_bytes);
 
   // ~SDCard();
 
