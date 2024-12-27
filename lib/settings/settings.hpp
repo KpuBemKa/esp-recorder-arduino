@@ -76,14 +76,13 @@ constexpr uint64_t FULL_STORAGE_THRESHOLD = 100 * 1024 * 1024; // bytes
 
 constexpr std::string_view DEVICE_NAME = "esp-recorder";
 
-constexpr std::string_view WIFI_SSID = "Penzari";
-constexpr std::string_view WIFI_PASS = "068882210";
+constexpr std::string_view WIFI_SSID = "MARS";
+constexpr std::string_view WIFI_PASS = "789456123";
 
 // constexpr std::string_view CONFIG_FTP_SERVER = "192.168.50.111";
-constexpr std::string_view CONFIG_FTP_SERVER = "192.168.0.136";
-constexpr uint16_t CONFIG_FTP_PORT = 21;
-constexpr std::string_view CONFIG_FTP_USER = "esp-recordings";
-constexpr std::string_view CONFIG_FTP_PASSWORD = "Admin0308";
+constexpr std::string_view CONFIG_UPLOAD_SERVER = "139.59.88.189";
+constexpr uint16_t CONFIG_UPLOAD_PORT = 8069;
+constexpr std::string_view CONFIG_UPLOAD_API_KEY = "b55ad831f7054ca6e6cbffad386b8eedd235a4b8";
 
 #define DEBUG_SD 1
 #define DEBUG_MIC 1

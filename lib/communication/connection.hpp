@@ -6,6 +6,8 @@
 
 #include "esp_wifi.h"
 
+#include <WiFi.h>
+
 class Connection
 {
 public:
@@ -15,6 +17,8 @@ public:
 
   std::expected<tm, bool> SntpTimeSync();
   bool WasTimeSyncAttempted() { return m_time_sync_attempted; }
+
+  WiFiClass GetWifiObject();
 
 private:
   bool m_is_wifi_started = false;

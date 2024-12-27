@@ -7,6 +7,8 @@
 
 #include "esp_err.h"
 
+#include <SD.h>
+
 namespace sd {
 
 struct FileInfo
@@ -28,6 +30,8 @@ public:
 
   uint64_t GetFreeSpace();
   void EnsureFreeSpace(const uint64_t& free_bytes);
+
+  SDFS GetSdObject();
 
   // ~SDCard();
 

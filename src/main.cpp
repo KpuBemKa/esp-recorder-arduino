@@ -49,8 +49,8 @@ setup()
 
   s_sd_card.EnsureFreeSpace(FULL_STORAGE_THRESHOLD);
 
-  // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
-  // thread to start the recording process as quick as possible
+  // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer
+  // in a separate thread to start the recording process as quick as possible
   StartSetupTask();
 }
 
@@ -134,7 +134,8 @@ StartupSetupExecutor(void*)
 void
 StartSetupTask()
 {
-  xTaskCreate(StartupSetupExecutor, "Setup_Executor", 4096, nullptr, 8, nullptr);
+  xTaskCreate(
+    StartupSetupExecutor, "Setup_Executor", 4096, nullptr, 8, nullptr);
 }
 
 bool
@@ -155,7 +156,8 @@ StartRecordingProcess()
 
   // const std::size_t upload_count = SendStoredFilesToServer();
   // if (upload_count > 0) {
-  //   LOG("%d files have been successfuly stored on the remove server.\n", upload_count);
+  //   LOG("%d files have been successfuly stored on the remove server.\n",
+  //   upload_count);
   // } else {
   //   LOG("Failed to upload any files to the remote server.\n");
   // }
@@ -171,7 +173,8 @@ RecordMicro()
   // create & initialize the I2S sampler which samples the microphone
   I2sSampler i2s_sampler;
   if (!i2s_sampler.Init()) {
-    Serial.printf("%s:%d | Error initializing the I2S sampler.\n", __FILE__, __LINE__);
+    Serial.printf(
+      "%s:%d | Error initializing the I2S sampler.\n", __FILE__, __LINE__);
     return false;
   }
 
@@ -202,7 +205,8 @@ RecordMicro()
 
   // stop the sampler
   if (!i2s_sampler.DeInit()) {
-    Serial.printf("%s:%d | Error de-initializing the I2S sampler.\n", __FILE__, __LINE__);
+    Serial.printf(
+      "%s:%d | Error de-initializing the I2S sampler.\n", __FILE__, __LINE__);
     return false;
   }
 
@@ -214,7 +218,8 @@ RecordMicro()
   // wait for system time to synchronize before renaming the file
   const TickType_t wait_start = xTaskGetTickCount();
   const TickType_t wait_end = wait_start + pdMS_TO_TICKS(SLEEP_TIMEOUT_MS);
-  while (!s_connection.WasTimeSyncAttempted() && xTaskGetTickCount() <= wait_end) {
+  while (!s_connection.WasTimeSyncAttempted() &&
+         xTaskGetTickCount() <= wait_end) {
     vTaskDelay(pdMS_TO_TICKS(500));
   }
 
@@ -245,7 +250,9 @@ RenameFile(const std::string_view temp_file_path)
   // make another name if file exists
   if (access(new_path.c_str(), F_OK) == 0) {
     new_file_name = DEVICE_NAME;
-    new_file_name.append("_").append(std::to_string(now_time + 1)).append(".wav");
+    new_file_name.append("_")
+      .append(std::to_string(now_time + 1))
+      .append(".wav");
   }
 
   Serial.printf("New file name: %s\n", new_file_name.c_str());
@@ -285,7 +292,8 @@ EnterSleep()
   }
 
   s_rotary_encoder.PrepareForSleep();
-  gpio_wakeup_enable(static_cast<gpio_num_t>(pins::BUTTON), gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
+  gpio_wakeup_enable(static_cast<gpio_num_t>(pins::BUTTON),
+                     gpio_int_type_t::GPIO_INTR_LOW_LEVEL);
   esp_sleep_enable_gpio_wakeup();
 
   LOG("Entering sleep...\n");
@@ -293,8 +301,10 @@ EnterSleep()
 
   const esp_err_t esp_result = esp_light_sleep_start();
   if (esp_result != ESP_OK) {
-    LOG(
-      "%s:%d | Failed to enter sleep mode: %s\n", __FILE__, __LINE__, esp_err_to_name(esp_result));
+    LOG("%s:%d | Failed to enter sleep mode: %s\n",
+        __FILE__,
+        __LINE__,
+        esp_err_to_name(esp_result));
     return false;
   }
 
@@ -310,8 +320,8 @@ EnterSleep()
   s_screen_1_driver.Init();
   s_screen_2_driver.Init();
 
-  // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
-  // thread to start the recording process as quick as possible
+  // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer
+  // in a separate thread to start the recording process as quick as possible
   StartSetupTask();
 
   return true;
@@ -326,27 +336,6 @@ SendStoredFilesToServer()
     return 0;
   }
 
-  // Open FTP server
-  LOG("ftp server: %s\n", CONFIG_FTP_SERVER.data());
-  LOG("ftp user  : %s\n", CONFIG_FTP_USER.data());
-
-  FtpClient ftp_client;
-
-  int connect = ftp_client.ftpClientConnect(CONFIG_FTP_SERVER.data(), CONFIG_FTP_PORT);
-  LOG("connect=%d", connect);
-  if (connect == 0) {
-    LOG("FTP server connect() failed.\n");
-    return false;
-  }
-
-  // Login to the FTP server
-  int login = ftp_client.ftpClientLogin(CONFIG_FTP_USER.data(), CONFIG_FTP_PASSWORD.data());
-  LOG("login=%d\n", login);
-  if (login == 0) {
-    LOG("FTP server login failed.\n");
-    return false;
-  }
-
   std::size_t upload_count = 0;
   std::size_t failed_count = 0;
   std::vector<std::string> wav_names = GetWavFileNames(8, 0);
@@ -354,48 +343,136 @@ SendStoredFilesToServer()
   // upload all stored files to the server by a batch of 8 at a time
   while (wav_names.size() != 0) {
     for (auto wav_file : wav_names) {
-      UploadFileAndDelete(ftp_client, sd::SDCard::GetFilePath(wav_file), wav_file) ? ++upload_count
-                                                                                   : ++failed_count;
+      UploadFileAndDelete(sd::SDCard::GetFilePath(wav_file), wav_file)
+        ? ++upload_count
+        : ++failed_count;
     }
 
     wav_names = GetWavFileNames(8, failed_count);
   }
 
-  ftp_client.ftpClientQuit();
-
   return upload_count;
 }
 
 bool
-UploadFileAndDelete(FtpClient& ftp_client,
-                    const std::string_view file_path,
+UploadFileAndDelete(const std::string_view file_path,
                     const std::string_view remote_new_name)
 {
-  LOG("Uploading '%.*s'...\n", file_path.length(), file_path.data());
 
-  int result = ftp_client.ftpClientPut(file_path.data(), remote_new_name.data(), FTP_CLIENT_BINARY);
-  if (result != 1) {
-    LOG("%s:%d | Error uploading '%.*s' to the server.\n",
-        __FILE__,
-        __LINE__,
-        file_path.length(),
-        file_path.data());
+  File audioFile = s_sd_card.GetSdObject().open(file_path.data(), FILE_READ);
+  if (!audioFile) {
+    Serial.println("Failed to open audio file.");
     return false;
   }
 
-  result = std::remove(file_path.data());
-  if (result != 0) {
-    LOG("%s:%d | Error deleting '%.*s': %d = %s\n",
-        __FILE__,
-        __LINE__,
-        file_path.length(),
-        file_path.data(),
-        errno,
-        strerror(errno));
+  Serial.println("Preparing to upload file...");
+
+  String boundary = "----ESP32Boundary";
+  String part1 = "--" + boundary + "\r\n" +
+                 "Content-Disposition: form-data; name=\"file\"; "
+                 "filename=\"vsauce_test_audio.mp3\"\r\n" +
+                 "Content-Type: audio/wav\r\n\r\n";
+  String part2 = "\r\n--" + boundary + "--\r\n";
+
+  size_t fileSize = audioFile.size();
+  size_t contentLength = part1.length() + fileSize + part2.length();
+
+  Serial.printf("File size: %u. Beginning the request...\n", fileSize);
+
+  WiFiClient wifi;
+  HttpClient client(wifi, CONFIG_UPLOAD_SERVER.data(), CONFIG_UPLOAD_PORT);
+
+  client.beginRequest();
+  client.post("/recs/new_rec");
+  client.sendHeader("Content-Type",
+                    "multipart/form-data; boundary=" + boundary);
+  client.sendHeader("Content-Length", String(contentLength));
+  client.sendHeader("Connection", "keep-alive");
+  client.sendHeader("API-Key", "b55ad831f7054ca6e6cbffad386b8eedd235a4b8");
+
+  Serial.println("Beginning the body...");
+
+  client.beginBody();
+  client.print(part1);
+
+  Serial.println("Sending the file...");
+
+  constexpr std::size_t buff_size = 1024 * 8;
+  uint8_t* f_buffer = reinterpret_cast<uint8_t*>(std::malloc(buff_size));
+  if (f_buffer == nullptr) {
+    Serial.println("No memory");
     return false;
   }
 
-  return true;
+  // holds the amount of total bytes sent
+  std::size_t bytes_counter = 0;
+  // amount of fails in a row
+  std::size_t fail_counter = 0;
+
+  while (audioFile.available()) {
+    const std::size_t bytesRead = audioFile.read(f_buffer, buff_size);
+    const std::size_t bytesSent = client.write(f_buffer, bytesRead);
+
+    bytes_counter += bytesSent;
+
+    if (bytesRead != bytesSent) {
+      // seek the audio file back to send the unsent bytes
+      audioFile.seek(bytes_counter);
+
+      // increment the fail counter if no new bytes have been sent
+      fail_counter += bytesSent == 0;
+
+      if (fail_counter == 3) {
+        client.endRequest();
+        audioFile.close();
+        Serial.println(
+          "\nUpload failed: host did not receive any data 3 times in a row.");
+        return false;
+      }
+    }
+
+    Serial.printf("\r%u/%u | %d%%",
+                  bytes_counter,
+                  fileSize,
+                  (int)(((float)bytes_counter / fileSize) * 100));
+    Serial.flush();
+  }
+
+  Serial.println();
+
+  audioFile.close();
+
+  client.print(part2);
+  client.endRequest();
+
+  Serial.println("File has been sent.");
+
+  int statusCode = client.responseStatusCode();
+  String response = client.responseBody();
+
+  Serial.print("Status code: ");
+  Serial.println(statusCode);
+  Serial.print("Response: ");
+  Serial.println(response);
+
+  if (statusCode == 200) {
+    int result = std::remove(file_path.data());
+
+    if (result != 0) {
+      LOG("%s:%d | Error deleting '%.*s': %d = %s\n",
+          __FILE__,
+          __LINE__,
+          file_path.length(),
+          file_path.data(),
+          errno,
+          strerror(errno));
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 std::vector<std::string>
@@ -437,7 +514,8 @@ GetWavFileNames(const std::size_t max_amount, const std::size_t offset)
     wav_names.push_back(std::string(file_path));
     ++file_count;
 
-    // LOG("'%.*s' has been added to the list.\n", file_path.length(), file_path.data());
+    // LOG("'%.*s' has been added to the list.\n", file_path.length(),
+    // file_path.data());
   }
 
   closedir(dir);
@@ -467,7 +545,8 @@ AppendNumberToName(const std::string_view file_path)
 void
 UpdateLeds()
 {
-  auto [r, g, b] = ARGB_COLORS[s_rotary_encoder.GetButtonCounter() % ARGB_COLORS.size()];
+  auto [r, g, b] =
+    ARGB_COLORS[s_rotary_encoder.GetButtonCounter() % ARGB_COLORS.size()];
   s_led_strip.setBrightness(RotaryPositionToByte());
   s_led_strip.setAllLedsColor(r, g, b);
 }
@@ -475,7 +554,8 @@ UpdateLeds()
 uint8_t
 RotaryPositionToByte()
 {
-  constexpr float k_pre_calc = (0xFF) / static_cast<float>(ROT_MAX_VALUE - ROT_MIN_VALUE);
+  constexpr float k_pre_calc =
+    (0xFF) / static_cast<float>(ROT_MAX_VALUE - ROT_MIN_VALUE);
 
   return static_cast<uint8_t>(s_rotary_encoder.GetPosition() * k_pre_calc);
 }
@@ -491,7 +571,8 @@ void
 AsyncDisplayImageOnScreen2(const std::string_view file_path)
 {
   auto lambda_executor = [](void* args) {
-    if (xSemaphoreTake(s_screen_2_semaphore, pdMS_TO_TICKS(SLEEP_TIMEOUT_MS / 2)) != pdTRUE) {
+    if (xSemaphoreTake(s_screen_2_semaphore,
+                       pdMS_TO_TICKS(SLEEP_TIMEOUT_MS / 2)) != pdTRUE) {
       Serial.println("Failed to obtain Screen #2 sempahore.");
       return;
     }
@@ -504,7 +585,12 @@ AsyncDisplayImageOnScreen2(const std::string_view file_path)
     vTaskDelete(nullptr);
   };
 
-  xTaskCreate(lambda_executor, "Screen_2", 4096, const_cast<char*>(file_path.data()), 8, nullptr);
+  xTaskCreate(lambda_executor,
+              "Screen_2",
+              4096,
+              const_cast<char*>(file_path.data()),
+              8,
+              nullptr);
 }
 
 void
@@ -531,7 +617,8 @@ SetScreen2State(const ScreenState new_state, bool async)
       break;
 
     default:
-      Serial.printf("Unknown screen state: %d\n", static_cast<int>(screen_state));
+      Serial.printf("Unknown screen state: %d\n",
+                    static_cast<int>(screen_state));
       return;
   }
 

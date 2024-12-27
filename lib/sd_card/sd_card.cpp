@@ -12,7 +12,6 @@
 // #endif
 // #include "esp_log.h"
 
-#include <SD.h>
 #include <SPI.h>
 
 #include "settings.hpp"
@@ -136,10 +135,10 @@ SDCard::EnsureFreeSpace(const uint64_t& free_bytes)
   return;
 }
 
-// SDCard::~SDCard()
-// {
-//   DeInit();
-// }
+SDFS GetSdObject() 
+{
+  return SD;
+}
 
 std::string
 SDCard::GetFilePath(const std::string_view file_name)
