@@ -46,12 +46,14 @@ setup()
   // Initialize the screens
   s_screen_1_driver.Init();
   s_screen_2_driver.Init();
+  s_screen_1_driver.Clear();
+  s_screen_2_driver.Clear();
 
   s_sd_card.EnsureFreeSpace(FULL_STORAGE_THRESHOLD);
 
   // manage wi-fi startup, time sync, ePaper initialization, sleep timeout timer in a separate
   // thread to start the recording process as quick as possible
-  StartSetupTask();
+  // StartSetupTask();
 }
 
 void
