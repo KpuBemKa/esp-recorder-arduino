@@ -12,9 +12,10 @@
 
 #include "Freenove_WS2812_Lib_for_ESP32.h"
 #include <Arduino.h>
+#include <ArduinoHttpClient.h>
 
 #include "connection.hpp"
-#include "ftp_client.hpp"
+// #include "ftp_client.hpp"
 #include "i2s_sampler.hpp"
 #include "pcf8563.hpp"
 #include "rotary_encoder.hpp"
@@ -33,7 +34,8 @@ enum class ScreenState
 
 /// @brief
 /// Startup procedure after a reset.
-/// Initializes pins, ePaper screen, Wi-Fi, and synchronizes system time via SNTP.
+/// Initializes pins, ePaper screen, Wi-Fi, and synchronizes system time via
+/// SNTP.
 void
 StartupSetupExecutor(void*);
 
@@ -79,8 +81,7 @@ std::size_t
 SendStoredFilesToServer();
 
 bool
-UploadFileAndDelete(FtpClient& ftp_client,
-                    const std::string_view file_path,
+UploadFileAndDelete(const std::string_view file_path,
                     const std::string_view remote_new_name);
 
 /// @brief Check if the recording button is pressed
